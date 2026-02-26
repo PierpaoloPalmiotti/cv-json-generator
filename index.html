@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV JSON Generator</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0f1117;--surface:#1a1d27;--surface2:#242837;--border:#2e3348;--accent:#6C63FF;--accent-hover:#5a52e0;--green:#2CC985;--red:#e74c3c;--text:#e4e4e7;--text2:#9ca3af;--radius:10px}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+  
+  header{background:linear-gradient(135deg,#1a1d27 0%,#242837 100%);border-bottom:1px solid var(--border);padding:20px 0;text-align:center}
+  header h1{font-size:1.6rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  header p{color:var(--text2);font-size:.85rem;margin-top:4px}
+
+  .container{max-width:1200px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:900px){.container{grid-template-columns:1fr}}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:16px}
+  .section{background:var(--surface2);border-radius:8px;padding:16px}
+  .section-title{font-size:.85rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+  label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+  input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:.88rem;font-family:inherit;transition:border-color .2s}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  textarea{resize:vertical;min-height:70px}
+
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field-group{margin-bottom:10px}
+  .field-group:last-child{margin-bottom:0}
+
+  /* List widget */
+  .list-widget{display:flex;flex-direction:column;gap:8px}
+  .list-input-row{display:flex;gap:6px}
+  .list-input-row input{flex:1}
+  .tag-container{display:flex;flex-wrap:wrap;gap:5px;min-height:28px}
+  .tag{background:var(--accent);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;animation:fadeIn .2s}
+  .tag button{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:.85rem;padding:0 2px;line-height:1}
+  .tag button:hover{color:#fff}
+
+  /* Experience */
+  .exp-form{display:grid;grid-template-columns:1fr 140px;gap:8px}
+  .exp-form .exp-desc{grid-column:1/-1}
+  .exp-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:.82rem;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;animation:fadeIn .2s}
+  .exp-card .exp-info{flex:1}
+  .exp-card .exp-company{font-weight:600;color:var(--text)}
+  .exp-card .exp-period{color:var(--accent);font-size:.75rem}
+  .exp-card .exp-description{color:var(--text2);margin-top:2px}
+  .exp-card button{background:none;border:none;color:var(--red);cursor:pointer;font-size:.9rem;flex-shrink:0;opacity:.6}
+  .exp-card button:hover{opacity:1}
+
+  /* Buttons */
+  .btn{border:none;border-radius:6px;padding:7px 16px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+  .btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-hover)}
+  .btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#25b577}
+  .btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#c0392b}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+  .btn-sm{padding:4px 10px;font-size:.72rem}
+
+  /* JSON Output */
+  .json-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .json-output{background:#0d0f15;border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'Fira Code','Cascadia Code','Consolas',monospace;font-size:.78rem;line-height:1.6;color:#a8d8a8;white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow-y:auto;tab-size:2}
+  .copy-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 24px;border-radius:8px;font-size:.85rem;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+  .copy-toast.show{opacity:1}
+
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+  .sticky-top{position:sticky;top:20px;align-self:flex-start}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📝 CV JSON Generator</h1>
+  <p>Compila i campi e copia il JSON generato — nessun dato viene salvato</p>
+</header>
+
+<div class="container">
+  <!-- LEFT: Form -->
+  <div class="panel" id="formPanel">
+
+    <!-- Anagrafica -->
+    <div class="section">
+      <div class="section-title">👤 Anagrafica</div>
+      <div class="field-group"><label>Nome e Cognome *</label><input id="f_name" placeholder="Es: Mario Rossi"></div>
+      <div class="field-group"><label>Titolo / Ruolo</label><input id="f_title" placeholder="Es: Cloud Architect"></div>
+      <div class="field-row">
+        <div class="field-group"><label>Sede / Office</label><input id="f_office" placeholder="Es: Milano"></div>
+        <div class="field-group"><label>Livello / Seniority</label><input id="f_level" placeholder="Es: Senior"></div>
+      </div>
+      <div class="field-group"><label>Profilo / Summary</label><textarea id="f_summary" placeholder="Breve descrizione del profilo professionale..." rows="3"></textarea></div>
+    </div>
+
+    <!-- Formazione -->
+    <div class="section">
+      <div class="section-title">🎓 Formazione</div>
+      <div class="field-group"><label>Titolo di studio</label><input id="f_degree" placeholder="Es: Laurea in Informatica"></div>
+      <div class="field-row">
+        <div class="field-group"><label>Programma / Indirizzo</label><input id="f_program" placeholder="Es: Ingegneria del Software"></div>
+        <div class="field-group"><label>Anno</label><input id="f_year" type="number" placeholder="Es: 2018" min="1950" max="2030"></div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="section">
+      <div class="section-title">🛠 Skills <span id="skills_count" style="color:var(--text2);font-weight:400">(0)</span></div>
+      <div class="list-widget">
+        <div class="list-input-row">
+          <input id="skills_input" placeholder="Es: Project Management, Agile, Leadership">
+          <button class="btn btn-accent btn-sm" onclick="addToList('skills')">＋</button>
+        </div>
+        <div class="tag-container" id="skills_tags"></div>
+      </div>
+    </div>
+
+    <!-- Technologies -->
+    <div class="section">
+      <div class="section-title">💻 Tecnologie <span id="tech_count" style="color:var(--text2);font-weight:400">(0)</span></div>
+      <div class="list-widget">
+        <div class="list-input-row">
+          <input id="tech_input" placeholder="Es: Python, AWS, Docker, Kubernetes">
+          <button class="btn btn-accent btn-sm" onclick="addToList('tech')">＋</button>
+        </div>
+        <div class="tag-container" id="tech_tags"></div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="section">
+      <div class="section-title">📜 Certificazioni <span id="cert_count" style="color:var(--text2);font-weight:400">(0)</span></div>
+      <div class="list-widget">
+        <div class="list-input-row">
+          <input id="cert_input" placeholder="Es: AWS Solutions Architect, PMP">
+          <button class="btn btn-accent btn-sm" onclick="addToList('cert')">＋</button>
+        </div>
+        <div class="tag-container" id="cert_tags"></div>
+      </div>
+    </div>
+
+    <!-- Esperienze -->
+    <div class="section">
+      <div class="section-title">💼 Esperienze <span id="exp_count" style="color:var(--text2);font-weight:400">(0)</span></div>
+      <div class="exp-form">
+        <input id="exp_company" placeholder="Azienda">
+        <input id="exp_period" placeholder="Es: 2020-2023">
+        <input id="exp_desc" class="exp-desc" placeholder="Ruolo e attività svolte">
+      </div>
+      <button class="btn btn-accent btn-sm" style="margin-top:8px;align-self:flex-end" onclick="addExperience()">＋ Aggiungi esperienza</button>
+      <div id="exp_list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: JSON Output -->
+  <div class="panel sticky-top">
+    <div class="json-header">
+      <div class="section-title" style="margin:0">📋 JSON Generato</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="resetAll()">🧹 Reset</button>
+        <button class="btn btn-green btn-sm" onclick="downloadJSON()">⬇ Scarica</button>
+        <button class="btn btn-accent" onclick="copyJSON()">📋 Copia JSON</button>
+      </div>
+    </div>
+    <div class="json-output" id="jsonOutput">{}</div>
+  </div>
+</div>
+
+<div class="copy-toast" id="toast">✅ JSON copiato negli appunti!</div>
+
+<script>
+// State
+const lists = { skills: [], tech: [], cert: [] };
+let experiences = [];
+
+// List inputs: Enter key support
+['skills','tech','cert'].forEach(k => {
+  document.getElementById(k+'_input').addEventListener('keydown', e => {
+    if(e.key==='Enter'){e.preventDefault();addToList(k)}
+  });
+});
+
+// Experience inputs: Enter key
+['exp_company','exp_period','exp_desc'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key==='Enter'){e.preventDefault();addExperience()}
+  });
+});
+
+// Auto-generate on any input change
+document.getElementById('formPanel').addEventListener('input', generateJSON);
+
+function addToList(key) {
+  const input = document.getElementById(key+'_input');
+  const raw = input.value.trim();
+  if(!raw) return;
+  const items = raw.split(/[,;|]/).map(s=>s.trim()).filter(s=>s);
+  items.forEach(item => {
+    if(!lists[key].includes(item)) lists[key].push(item);
+  });
+  input.value = '';
+  renderTags(key);
+  generateJSON();
+}
+
+function removeFromList(key, idx) {
+  lists[key].splice(idx, 1);
+  renderTags(key);
+  generateJSON();
+}
+
+function renderTags(key) {
+  const container = document.getElementById(key+'_tags');
+  container.innerHTML = lists[key].map((item, i) =>
+    `<span class="tag">${esc(item)}<button onclick="removeFromList('${key}',${i})">×</button></span>`
+  ).join('');
+  document.getElementById(key+'_count').textContent = `(${lists[key].length})`;
+}
+
+function addExperience() {
+  const c = document.getElementById('exp_company');
+  const p = document.getElementById('exp_period');
+  const d = document.getElementById('exp_desc');
+  if(!c.value.trim() && !p.value.trim() && !d.value.trim()) return;
+  experiences.push({ company: c.value.trim(), period: p.value.trim(), description: d.value.trim() });
+  c.value = ''; p.value = ''; d.value = '';
+  renderExperiences();
+  generateJSON();
+}
+
+function removeExperience(idx) {
+  experiences.splice(idx, 1);
+  renderExperiences();
+  generateJSON();
+}
+
+function renderExperiences() {
+  const container = document.getElementById('exp_list');
+  container.innerHTML = experiences.map((exp, i) => `
+    <div class="exp-card">
+      <div class="exp-info">
+        <div class="exp-company">${esc(exp.company||'N/A')}</div>
+        ${exp.period ? `<div class="exp-period">${esc(exp.period)}</div>` : ''}
+        ${exp.description ? `<div class="exp-description">${esc(exp.description)}</div>` : ''}
+      </div>
+      <button onclick="removeExperience(${i})" title="Rimuovi">🗑</button>
+    </div>
+  `).join('');
+  document.getElementById('exp_count').textContent = `(${experiences.length})`;
+}
+
+function collectData() {
+  const v = id => document.getElementById(id).value.trim();
+  const yearStr = v('f_year');
+  let year = null;
+  if(yearStr) { const n = parseInt(yearStr); if(!isNaN(n)) year = n; }
+
+  return {
+    name: v('f_name'),
+    title: v('f_title'),
+    Office: v('f_office'),
+    Level: v('f_level'),
+    summary: v('f_summary'),
+    skills: [...lists.skills],
+    technologies: [...lists.tech],
+    education: { degree: v('f_degree'), year: year, program: v('f_program') },
+    certifications: [...lists.cert],
+    experience: experiences.map(e => ({...e}))
+  };
+}
+
+function generateJSON() {
+  const data = collectData();
+  document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+}
+
+function copyJSON() {
+  const text = document.getElementById('jsonOutput').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+
+function downloadJSON() {
+  const data = collectData();
+  const name = data.name ? data.name.toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_') : 'cv';
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetAll() {
+  if(!confirm('Svuotare tutti i campi?')) return;
+  document.querySelectorAll('#formPanel input, #formPanel textarea').forEach(el => el.value = '');
+  lists.skills = []; lists.tech = []; lists.cert = [];
+  experiences = [];
+  ['skills','tech','cert'].forEach(renderTags);
+  renderExperiences();
+  generateJSON();
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Initial render
+generateJSON();
+</script>
+</body>
+</html>
